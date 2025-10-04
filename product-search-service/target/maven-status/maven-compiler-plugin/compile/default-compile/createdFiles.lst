@@ -1,0 +1,12 @@
+com\example\productsearchservice\dto\ProductDTO.class
+com\example\productsearchservice\controller\ProductController.class
+com\example\productsearchservice\strategy\BasicProductCreation.class
+com\example\productsearchservice\ProductSearchServiceApplication.class
+com\example\productsearchservice\strategy\ProductCreationStrategy.class
+com\example\productsearchservice\controller\InternalProductController.class
+com\example\productsearchservice\model\Product.class
+com\example\productsearchservice\strategy\StrategyMapping.class
+com\example\productsearchservice\repository\ProductRepository.class
+com\example\productsearchservice\strategy\ProductCreationFactory.class
+com\example\productsearchservice\strategy\DiscountedProductCreation.class
+com\example\productsearchservice\service\ProductService.class

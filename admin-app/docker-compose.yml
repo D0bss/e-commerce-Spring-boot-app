@@ -1,0 +1,59 @@
+
+services:
+  mongo:
+    image: mongo
+    restart: always
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: admin
+      MONGO_INITDB_ROOT_PASSWORD: admin
+    ports:
+      - "27017:27017"
+    networks:
+      - admin-network
+
+  mongo-express:
+    image: mongo-express
+    restart: always
+    ports:
+      - "9000:8081"
+    environment:
+      ME_CONFIG_MONGODB_ADMINUSERNAME: admin
+      ME_CONFIG_MONGODB_ADMINPASSWORD: admin
+      ME_CONFIG_MONGODB_URL: mongodb://admin:admin@mongo:27017/
+      ME_CONFIG_BASICAUTH: true
+    networks:
+      - admin-network
+      
+  redis:
+    image: redis
+    ports:
+      - "6380:6379"
+    networks:
+      - admin-network
+      
+  admin-app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: admin-app
+    ports:
+      - "8084:8080"
+    environment:
+      - SPRING_RABBITMQ_HOST=host.docker.internal
+      - SPRING_RABBITMQ_PORT=5673
+      - SPRING_RABBITMQ_USERNAME=guest
+      - SPRING_RABBITMQ_PASSWORD=guest
+      - SPRING_REDIS_HOST=redis
+      - SPRING_REDIS_PORT=6379
+      - SPRING_DATA_MONGODB_URI=mongodb://admin:admin@mongo:27017/admin
+    networks:
+      - admin-network
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    depends_on:
+      - mongo
+      - redis
+
+networks:
+  admin-network:
+    driver: bridge

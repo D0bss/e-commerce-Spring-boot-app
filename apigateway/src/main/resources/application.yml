@@ -1,0 +1,26 @@
+server:
+  port: 8080
+spring:
+  main:
+    web-application-type: reactive
+  application:
+    name: apigateway
+  cloud:
+    gateway:
+      routes:
+        - id: admin-app
+          uri: http://localhost:8084
+          predicates:
+            - Path=/admin/**,/promotions/**
+        - id: checkout-transaction-service
+          uri: http://localhost:8083
+          predicates:
+            - Path=/transactions/**
+        - id: product-app
+          uri: http://localhost:8082
+          predicates:
+            - Path=/products/**
+        - id: user-app
+          uri: http://localhost:8081
+          predicates:
+            - Path=/internal/**,/users/**

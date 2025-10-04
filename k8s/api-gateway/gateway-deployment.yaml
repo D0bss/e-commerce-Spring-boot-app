@@ -1,0 +1,57 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: apigateway-service
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: apigateway-service
+  template:
+    metadata:
+      labels:
+        app: apigateway-service
+    spec:
+      containers:
+        - name: apigateway-service
+          image: roaamahmoud/apigateway-service:latest
+          ports:
+            - containerPort: 8080
+          env:
+            - name: SPRING_PROFILES_ACTIVE
+              value: k8s
+
+            - name: SPRING_MAIN_WEB_APPLICATION_TYPE
+              value: reactive
+
+            # -------- Admin App Route --------
+            - name: SPRING_CLOUD_GATEWAY_ROUTES_0_ID
+              value: admin-app
+            - name: SPRING_CLOUD_GATEWAY_ROUTES_0_URI
+              value: http://admin-app:8084
+            - name: SPRING_CLOUD_GATEWAY_ROUTES_0_PREDICATES_0
+              value: Path=/admin/**,/promotions/**,/users/delete/**
+
+            # -------- Checkout Transaction Route --------
+            - name: SPRING_CLOUD_GATEWAY_ROUTES_1_ID
+              value: checkout-transaction-service
+            - name: SPRING_CLOUD_GATEWAY_ROUTES_1_URI
+              value: http://checkout-transaction-service:8083
+            - name: SPRING_CLOUD_GATEWAY_ROUTES_1_PREDICATES_0
+              value: Path=/transactions/**
+
+            # -------- Product App Route --------
+            - name: SPRING_CLOUD_GATEWAY_ROUTES_2_ID
+              value: product-app
+            - name: SPRING_CLOUD_GATEWAY_ROUTES_2_URI
+              value: http://product-app:8082
+            - name: SPRING_CLOUD_GATEWAY_ROUTES_2_PREDICATES_0
+              value: Path=/products/**
+
+            # -------- User App Route --------
+            - name: SPRING_CLOUD_GATEWAY_ROUTES_3_ID
+              value: user-app
+            - name: SPRING_CLOUD_GATEWAY_ROUTES_3_URI
+              value: http://user-app:8081
+            - name: SPRING_CLOUD_GATEWAY_ROUTES_3_PREDICATES_0
+              value: Path=/internal/**,/users/**

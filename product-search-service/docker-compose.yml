@@ -1,0 +1,46 @@
+# product docker-compose.yml
+version: '3.8'
+
+services:
+  mongo:
+    image: mongo
+    restart: always
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: product
+      MONGO_INITDB_ROOT_PASSWORD: product
+    ports:
+      - "27018:27017"  # host:container
+    networks:
+      - product-net
+
+  mongo-express:
+    image: mongo-express
+    restart: always
+    ports:
+      - "9001:8081"
+    environment:
+      ME_CONFIG_MONGODB_ADMINUSERNAME: product
+      ME_CONFIG_MONGODB_ADMINPASSWORD: product
+      ME_CONFIG_MONGODB_URL: mongodb://product:product@mongo:27017/
+      ME_CONFIG_BASICAUTH: true
+    networks:
+      - product-net
+
+  product-search:
+    build:
+      context: .
+    container_name: product-search
+    ports:
+      - "8082:8082"
+    depends_on:
+      - mongo
+    networks:
+      - product-net
+    environment:
+      SPRING_DATA_MONGODB_URI: mongodb://product:product@mongo:27017/productDb?authSource=admin
+      SPRING_APPLICATION_NAME: product-app
+      SERVER_PORT: 8082
+
+networks:
+  product-net:
+    driver: bridge

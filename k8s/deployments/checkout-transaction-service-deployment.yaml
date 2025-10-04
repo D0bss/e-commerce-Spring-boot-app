@@ -1,0 +1,90 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: checkout-transaction-service
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: checkout-transaction-service
+  template:
+    metadata:
+      labels:
+        app: checkout-transaction-service
+    spec:
+      containers:
+        - name: checkout-transaction-service
+          image: roaamahmoud/checkout-transaction-service:latest
+          ports:
+            - containerPort: 8083
+          env:
+            - name: SPRING_PROFILES_ACTIVE
+              value: k8s
+
+            # ✅ Database Configuration (updated service and secret references)
+            - name: SPRING_DATASOURCE_URL
+              value: jdbc:postgresql://transaction-db:5432/checkoutdb
+            - name: SPRING_DATASOURCE_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: transaction-db-secret
+                  key: POSTGRES_USER
+            - name: SPRING_DATASOURCE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: transaction-db-secret
+                  key: POSTGRES_PASSWORD
+            - name: SPRING_JPA_HIBERNATE_DDL_AUTO
+              value: update
+            - name: SPRING_JPA_SHOW_SQL
+              value: "true"
+            - name: SPRING_JPA_PROPERTIES_HIBERNATE_DIALECT
+              value: org.hibernate.dialect.PostgreSQLDialect
+            - name: SPRING_JPA_PROPERTIES_HIBERNATE_FORMAT_SQL
+              value: "true"
+
+            # ✅ RabbitMQ Configuration (assumes service name is correct)
+            - name: SPRING_RABBITMQ_HOST
+              value: rabbitmq-checkout
+            - name: SPRING_RABBITMQ_PORT
+              value: "5672"
+            - name: SPRING_RABBITMQ_USERNAME
+              value: guest
+            - name: SPRING_RABBITMQ_PASSWORD
+              value: guest
+
+            # Redis (optional)
+            - name: SPRING_DATA_REDIS_HOST
+              value: redis
+            - name: SPRING_DATA_REDIS_PORT
+              value: "6379"
+
+            # Mail Configuration
+            - name: SPRING_MAIL_HOST
+              value: smtp.gmail.com
+            - name: SPRING_MAIL_PORT
+              value: "587"
+            - name: SPRING_MAIL_USERNAME
+              value: voaygemasters@gmail.com
+            - name: SPRING_MAIL_PASSWORD
+              value: YOUR_GMAIL_APP_PASSWORD
+            - name: SPRING_MAIL_PROPERTIES_MAIL_SMTP_AUTH
+              value: "true"
+            - name: SPRING_MAIL_PROPERTIES_MAIL_SMTP_STARTTLS_ENABLE
+              value: "true"
+
+            # Feign Clients
+            - name: FEIGN_CLIENT_CONFIG_USER_SERVICE_URL
+              value: http://user-app:8081
+            - name: FEIGN_CLIENT_CONFIG_PRODUCT_SERVICE_URL
+              value: http://product-search-service:8082
+
+            # Logging
+            - name: LOGGING_LEVEL_COM_EXAMPLE_CHECKOUT
+              value: DEBUG
+            - name: LOGGING_LEVEL_ORG_SPRINGFRAMEWORK_WEB
+              value: INFO
+            - name: LOGGING_LEVEL_ORG_HIBERNATE_SQL
+              value: DEBUG
+            - name: LOGGING_LEVEL_ORG_HIBERNATE_TYPE_DESCRIPTOR_SQL_BASICBINDER
+              value: TRACE

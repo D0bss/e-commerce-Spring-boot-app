@@ -1,0 +1,94 @@
+# This docker-compose file is for running the checkout-transaction-service in standalone mode.
+services:
+  # PostgreSQL service for Checkout
+  postgres-checkout:
+    image: postgres:15
+    container_name: postgres_checkout_db
+    environment:
+      POSTGRES_DB: checkoutdb
+      POSTGRES_USER: checkoutuser
+      POSTGRES_PASSWORD: checkoutpassword
+    ports:
+      - "5433:5432" # Exposing on host port 5433 to avoid conflict if another postgres runs on 5432
+    volumes:
+      - postgres_checkout_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U checkoutuser -d checkoutdb"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - checkout_network
+
+  # RabbitMQ service for Checkout
+  rabbitmq-checkout:
+    image: rabbitmq:3.12-management-alpine
+    container_name: rabbitmq_checkout_mq
+    ports:
+      - "5673:5672"  # AMQP port, host port 5673
+      - "15673:15672" # Management UI, host port 15673
+    environment:
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASS: guest
+    volumes:
+      - rabbitmq_checkout_data:/var/lib/rabbitmq/
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - checkout_network
+
+  # Checkout Transaction Service
+  checkout-transaction-service:
+    build:
+      context: . # Assumes Dockerfile is in this sub-directory
+      dockerfile: Dockerfile
+    container_name: checkout_transaction_app
+    depends_on:
+      postgres-checkout:
+        condition: service_healthy
+      rabbitmq-checkout:
+        condition: service_healthy
+    ports:
+      - "8083:8083"
+    environment:
+      SPRING_APPLICATION_NAME: checkout-transaction-service
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres-checkout:5432/checkoutdb
+      SPRING_DATASOURCE_USERNAME: checkoutuser
+      SPRING_DATASOURCE_PASSWORD: checkoutpassword
+      SPRING_JPA_HIBERNATE_DDL_AUTO: update # or 'validate' in more stable environments
+      SPRING_JPA_SHOW_SQL: true
+      SPRING_JPA_PROPERTIES_HIBERNATE_DIALECT: org.hibernate.dialect.PostgreSQLDialect
+      SPRING_JPA_PROPERTIES_HIBERNATE_FORMAT_SQL: true
+      SPRING_RABBITMQ_HOST: rabbitmq-checkout
+      SPRING_RABBITMQ_PORT: 5672
+      SPRING_RABBITMQ_USERNAME: guest
+      SPRING_RABBITMQ_PASSWORD: guest
+      # Feign client URLs (assuming user-app and product-search-service might be added to this network or run externally)
+      FEIGN_CLIENT_CONFIG_USER_SERVICE_URL: http://user-app:8081 
+      FEIGN_CLIENT_CONFIG_PRODUCT_SERVICE_URL: http://product-search-service:8082
+      # Logging levels (can also be set here if needed, overriding application.properties)
+      LOGGING_LEVEL_COM_EXAMPLE_CHECKOUT: DEBUG
+      LOGGING_LEVEL_ORG_SPRINGFRAMEWORK_WEB: INFO
+      LOGGING_LEVEL_ORG_HIBERNATE_SQL: DEBUG
+      LOGGING_LEVEL_ORG_HIBERNATE_TYPE_DESCRIPTOR_SQL_BASICBINDER: TRACE
+      # Mail configuration (ensure these are correct or managed via secrets/external config)
+      SPRING_MAIL_HOST: smtp.gmail.com
+      SPRING_MAIL_PORT: 587
+      SPRING_MAIL_USERNAME: voaygemasters@gmail.com
+      SPRING_MAIL_PASSWORD: ezkk vsxm varp vmpu
+      SPRING_MAIL_PROPERTIES_MAIL_SMTP_AUTH: true
+      SPRING_MAIL_PROPERTIES_MAIL_SMTP_STARTTLS_ENABLE: true
+    networks:
+      - checkout_network
+
+volumes:
+  postgres_checkout_data:
+  rabbitmq_checkout_data:
+
+networks:
+  checkout_network:
+    driver: bridge
+
